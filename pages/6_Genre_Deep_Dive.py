@@ -9,58 +9,13 @@ data = load_all_data()
 df_genres = data.get('genres', pd.DataFrame())
 
 st.title("🎵 3. Genre Deep Dive Analysis")
-st.header("Understanding Feature Profiles and Popularity Across Genres")
 
 if df_genres.empty:
     st.error("Genre data not loaded. Please ensure 'df_genres' is correctly returned by load_all_data().")
     st.stop()
 
-# --- 1. Which genre is most energetic? Most valence? (Visuals) ---
-st.subheader("1. Most Energetic and Positive Genres")
-st.markdown("These charts highlight the genres with the highest average **Energy** (intensity and activity) and **Valence** (musical positivity/happiness) scores.")
-
-col_energy, col_valence = st.columns(2)
-
-# --- Most Energetic Genre ---
-with col_energy:
-    # Calculate most energetic genre for the title text
-    most_energetic_genre = df_genres.loc[df_genres['energy'].idxmax()]
-    
-    fig_energy = px.bar(
-        df_genres.sort_values('energy', ascending=True).tail(10), 
-        x='energy', 
-        y='genre', 
-        orientation='h',
-        title=f"Top 10 Genres by Average Energy (Most: {most_energetic_genre['genre']})",
-        labels={'energy': 'Average Energy Score (0-1)', 'genre': 'Genre'},
-        color='energy',
-        color_continuous_scale=px.colors.sequential.Sunset
-    )
-    fig_energy.update_layout(yaxis={'categoryorder':'total ascending'})
-    st.plotly_chart(fig_energy, use_container_width=True)
-
-# --- Most Valence Genre ---
-with col_valence:
-    # Calculate most valence genre for the title text
-    most_valence_genre = df_genres.loc[df_genres['valence'].idxmax()]
-    
-    fig_valence = px.bar(
-        df_genres.sort_values('valence', ascending=True).tail(10), 
-        x='valence', 
-        y='genre', 
-        orientation='h',
-        title=f"Top 10 Genres by Average Valence (Most: {most_valence_genre['genre']})",
-        labels={'valence': 'Average Valence Score (0-1)', 'genre': 'Genre'},
-        color='valence',
-        color_continuous_scale=px.colors.sequential.Agsunset
-    )
-    fig_valence.update_layout(yaxis={'categoryorder':'total ascending'})
-    st.plotly_chart(fig_valence, use_container_width=True)
-
-st.markdown("---")
-
-# --- 2. Compare average features across genres. (Radar Chart) ---
-st.subheader(" Compare Average Features Across Genres")
+# --- Compare average features across genres. (Radar Chart) ---
+st.subheader("Compare Average Features Across Genres")
 st.markdown("The radar chart compares the full 'feature fingerprint' of up to five selected genres, answering the comparison question directly.")
 
 genre_list = df_genres['genre'].unique().tolist()
@@ -89,7 +44,9 @@ if compare_genres:
         data_row = data_rows.iloc[0]
         
         # Manual normalization for loudness and tempo to fit the 0-1 scale
+        # Loudness: using a range from -60 (min) to 0 (max)
         norm_loudness = min(1.0, max(0.0, (data_row['loudness'] + 60) / 60))
+        # Tempo: using a range from 60 (min) to 200 (approx max)
         norm_tempo = min(1.0, max(0.0, (data_row['tempo'] - 60) / 140))
         
         r_values = [

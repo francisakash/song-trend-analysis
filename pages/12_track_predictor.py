@@ -7,7 +7,8 @@ from utils import load_all_data # Assumes load_all_data() handles file loading a
 
 # --- Configuration ---
 SUCCESS_THRESHOLD = 80 # New definition: Popularity must be 80 or higher
-FEATURES = ['Danceability', 'Energy', 'Valence', 'Acousticness', 'Liveness', 'Speechiness', 
+# Removed 'Acousticness' and 'Liveness'
+FEATURES = ['Danceability', 'Energy', 'Valence', 'Speechiness', 
             'Instrumentalness', 'Loudness', 'Tempo']
 
 # --- Data Loading ---
@@ -45,7 +46,7 @@ def load_and_analyze_raw_data():
             for feature in FEATURES
         }
 
-        # Calculate the average profile for the hits
+        # Calculate the average profile for the hits (only including FEATURES columns)
         avg_hit_profile = df_hits[FEATURES].mean().round(3)
         
         return avg_hit_profile, FEATURES, normalization_params
@@ -85,6 +86,7 @@ def create_radar_figure(user_profile, avg_hit_profile, features, norm_params):
     colors = ['#1DB954', '#FF4B4B'] 
     
     for i, profile in enumerate(profiles):
+        # Only use the filtered FEATURES list here
         r_values = [normalize_feature(f, profile.get(f, 0), norm_params) for f in features]
         hover_text = [f"{f}: {profile.get(f, 0):.3f}" for f in features]
 
@@ -140,7 +142,7 @@ def calculate_prediction_score(user_profile, avg_hit_profile, features, norm_par
     dist_to_hit = np.linalg.norm(user_norm - hit_norm)
     
     # 3. Calculate Similarity Score (0 to 100)
-    # The maximum possible distance is fixed (the distance between all 0s and all 1s on a 9-feature radar chart)
+    # The maximum possible distance is fixed (the distance between all 0s and all 1s on a 7-feature radar chart)
     MAX_POSSIBLE_DISTANCE = np.sqrt(len(features)) # Max distance in an N-dimensional unit cube
     
     # Normalize distance to 0-1 scale (0 is max distance, 1 is 0 distance)
@@ -171,16 +173,14 @@ else:
     col1, col2 = st.columns(2)
     user_input = {}
     
-    # Left Column: Normalized 0-1 Features
+    # Left Column: Normalized 0-1 Features (Now only 3 main features)
     with col1:
         st.markdown("#### Normalized Features (0.0 to 1.0)")
         user_input['Danceability'] = st.slider('Danceability', 0.0, 1.0, 0.7, 0.01)
         user_input['Energy'] = st.slider('Energy', 0.0, 1.0, 0.8, 0.01)
         user_input['Valence'] = st.slider('Valence', 0.0, 1.0, 0.6, 0.01)
-        user_input['Acousticness'] = st.slider('Acousticness', 0.0, 1.0, 0.1, 0.01)
-        user_input['Liveness'] = st.slider('Liveness', 0.0, 1.0, 0.2, 0.01)
 
-    # Right Column: Specific Scale Features
+    # Right Column: Specific Scale Features (Still the same)
     with col2:
         st.markdown("#### Specific Scale Features")
         user_input['Speechiness'] = st.slider('Speechiness', 0.0, 1.0, 0.1, 0.01)
@@ -249,5 +249,7 @@ else:
         f'Avg Popularity $\geq {SUCCESS_THRESHOLD}$ Hit Profile': avg_hit_profile.round(3)
     })
     
-    st.dataframe(df_comparison.T.style.format('{:.3f}'), use_container_width=True)
-    
+    # Explicitly reindex to the defined FEATURES list to ensure only relevant rows appear
+    df_comparison_filtered = df_comparison.reindex(FEATURES)
+
+    st.dataframe(df_comparison_filtered.T.style.format('{:.3f}'), use_container_width=True)
